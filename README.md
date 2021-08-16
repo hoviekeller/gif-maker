@@ -9,7 +9,7 @@ You can install this app as a PWA on your mobile device, moreover, it is availab
 Chrome: https://chrome.google.com/webstore/detail/gif-maker/jdhodfggggnlbjhgdjggokbhbecefadl  
 Opera: https://addons.opera.com/en/extensions/details/gif-maker/  
 Firefox: https://addons.mozilla.org/en-US/firefox/addon/gif-maker/  
-Edge:   
+Edge: https://microsoftedge.microsoft.com/addons/detail/ohebdnblbdcbbjebmclkmofaocccidhc   
 
 Webapp & PWA: https://webbrowsertools.com/gif-maker/
 
