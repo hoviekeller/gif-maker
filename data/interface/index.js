@@ -1,14 +1,14 @@
 var background = (function () {
-  var tmp = {};
-  var context = document.documentElement.getAttribute("context");
+  let tmp = {};
+  let context = document.documentElement.getAttribute("context");
   if (context === "webapp") {
     return {
       "send": function () {},
       "receive": function (callback) {}
     }
   } else {
-    chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-      for (var id in tmp) {
+    chrome.runtime.onMessage.addListener(function (request) {
+      for (let id in tmp) {
         if (tmp[id] && (typeof tmp[id] === "function")) {
           if (request.path === "background-to-interface") {
             if (request.method === id) tmp[id](request.data);
@@ -19,43 +19,72 @@ var background = (function () {
     /*  */
     return {
       "receive": function (id, callback) {tmp[id] = callback},
-      "send": function (id, data) {chrome.runtime.sendMessage({"path": "interface-to-background", "method": id, "data": data})}
+      "send": function (id, data) {
+        chrome.runtime.sendMessage({
+          "method": id, 
+          "data": data,
+          "path": "interface-to-background"
+        }, function () {
+          return chrome.runtime.lastError;
+        });
+      }
     }
   }
 })();
 
 var config = {
-  "GIF": {"options": {}},
+  "GIF": {
+    "options": {}
+  },
+  "dragover": function (e) {
+    e.preventDefault();
+  },
   "addon": {
     "homepage": function () {
       return chrome.runtime.getManifest().homepage_url;
     }
   },
+  "drop": function (e) {
+    if (!e.target.id || e.target.id.indexOf("fileio") === -1) {
+      e.preventDefault();
+      /*  */
+      config.handle.input.files({
+        "target": {
+          "files": e.dataTransfer.files
+        }
+      });
+    }
+  },
   "resize": {
     "timeout": null,
     "method": function () {
-      if (config.resize.timeout) window.clearTimeout(config.resize.timeout);
-      config.resize.timeout = window.setTimeout(function () {
-        config.update.container();
-        /*  */
-        config.storage.write("size", {
-          "width": window.innerWidth || window.outerWidth,
-          "height": window.innerHeight || window.outerHeight
-        });
-      }, 1000);
+      if (config.port.name === "win") {
+        if (config.resize.timeout) window.clearTimeout(config.resize.timeout);
+        config.resize.timeout = window.setTimeout(async function () {
+          const current = await chrome.windows.getCurrent();
+          /*  */
+          config.update.container();
+          config.storage.write("interface.size", {
+            "top": current.top,
+            "left": current.left,
+            "width": current.width,
+            "height": current.height
+          });
+        }, 1000);
+      }
     }
   },
   "app": {
     "start": function () {
-      var sidebar = document.querySelector(".sidebar");
-      var items = [...sidebar.querySelectorAll("[id]")];
+      const sidebar = document.querySelector(".sidebar");
+      const items = [...sidebar.querySelectorAll("[id]")];
       config.GIF.options = config.storage.read("options") !== undefined ? config.storage.read("options") : {};
       /*  */
       if (Object.keys(config.GIF.options).length === 0) config.handle.linsteners();
-      for (var i = 0; i < items.length; i++) {
+      for (let i = 0; i < items.length; i++) {
         items[i].addEventListener("change", config.handle.linsteners, false);
         /*  */
-        var key = items[i].id;
+        const key = items[i].id;
         if (key in config.GIF.options) {
           items[i].value = config.GIF.options[key];
           config.update.svg(items[i].id, items[i].value);
@@ -64,12 +93,12 @@ var config = {
     }
   },
   "download": {
-    "svg": function (href, filename) {
-      var result = document.querySelector(".result div");
+    "svg": function () {
+      const result = document.querySelector(".result div");
       if (result) {
-        var img = result.querySelector("img");
+        const img = result.querySelector("img");
         if (img && img.src) {
-          var a = document.createElement("a");
+          const a = document.createElement("a");
           a.href = img.src;
           a.download = "result.gif";
           document.body.appendChild(a);
@@ -96,7 +125,7 @@ var config = {
     "write": function (id, data) {
       if (id) {
         if (data !== '' && data !== null && data !== undefined) {
-          var tmp = {};
+          let tmp = {};
           tmp[id] = data;
           config.storage.local[id] = data;
           chrome.storage.local.set(tmp, function () {});
@@ -111,7 +140,7 @@ var config = {
     "name": '',
     "connect": function () {
       config.port.name = "webapp";
-      var context = document.documentElement.getAttribute("context");
+      const context = document.documentElement.getAttribute("context");
       /*  */
       if (chrome.runtime) {
         if (chrome.runtime.connect) {
@@ -137,12 +166,12 @@ var config = {
   },
   "handle": {
     "linsteners": function (e) {
-      var sidebar = document.querySelector(".sidebar");
-      var items = [...sidebar.querySelectorAll("[id]")];
+      const sidebar = document.querySelector(".sidebar");
+      const items = [...sidebar.querySelectorAll("[id]")];
       /*  */
-      for (var i = 0; i < items.length; i++) {
-        var key = items[i].id;
-        var value = items[i].type === "number" ? Number(items[i].value) : items[i].value;
+      for (let i = 0; i < items.length; i++) {
+        const key = items[i].id;
+        const value = items[i].type === "number" ? Number(items[i].value) : items[i].value;
         if (key !== undefined && value !== undefined) {
           config.GIF.options[key] = value;
         }
@@ -159,8 +188,11 @@ var config = {
             delete config.GIF.options.images;
             delete config.GIF.options.undefined;
             /*  */
-            var key = "GIFSource";
-            var source = config.GIF.options[key];
+            const key = "GIFSource";
+            let source = config.GIF.options[key];
+            const info = document.querySelector(".source").querySelector("div");
+            /*  */
+            info.textContent = e.target.files.length + " file(s) received.";
             if (e.target.files[0].type.indexOf("video") !== -1) source = "video";
             if (e.target.files[0].type.indexOf("image") !== -1) source = "images";
             /*  */
@@ -169,10 +201,10 @@ var config = {
             document.querySelector("#" + key).value = source;
             config.storage.write("options", config.GIF.options);
             /*  */
-            for (var i = 0; i < e.target.files.length; i++) {
-              var file = e.target.files[i];
+            for (let i = 0; i < e.target.files.length; i++) {
+              const file = e.target.files[i];
               if (file) {
-                var src = window.URL.createObjectURL(file);
+                const src = window.URL.createObjectURL(file);
                 if (src) {
                   config.GIF.options[source].push(src);
                 }
@@ -185,27 +217,26 @@ var config = {
   },
   "update": {
     "container": function () {
-      var result = document.querySelector(".result");
+      const result = document.querySelector(".result");
       if (result) {
-        var div = result.querySelector("div");
+        const div = result.querySelector("div");
         if (div) {
-          div.style.height = "max-content";
-          div.style.height = window.getComputedStyle(result).height;
+          const svg = result.querySelector("svg");
+          div.style.minHeight = svg.height.baseVal.value + 15 + "px";
         }
       }
     },
     "svg": function (id, value) {
-      var result = document.querySelector(".result");
+      const result = document.querySelector(".result");
       if (result) {
-        var div = result.querySelector("div");
+        const div = result.querySelector("div");
         if (div) {
-          var svg = div.querySelector("svg");
+          const svg = div.querySelector("svg");
           if (svg) {
-            var text = svg.querySelector("text");
+            const text = svg.querySelector("text");
             if (text) {
               switch (id) {
-                case "fontColor": text.style.color = value; break;
-                case "textAlign": text.style.textAlign = value; break;
+                case "fontColor": text.style.fill = value; break;
                 case "fontWeight": text.style.fontWeight = value; break;
                 case "fontFamily": text.style.fontFamily = value; break;
                 case "fontSize": text.style.fontSize = value + "px"; break;
@@ -238,51 +269,58 @@ var config = {
     }
   },
   "load": function () {
-    var run = document.querySelector(".run");
-    var reload = document.getElementById("reload");
-    var fileio = document.getElementById("fileio");
-    var support = document.getElementById("support");
-    var download = document.querySelector(".download");
-    var donation = document.getElementById("donation");
+    const run = document.querySelector(".run");
+    const reload = document.getElementById("reload");
+    const fileio = document.getElementById("fileio");
+    const support = document.getElementById("support");
+    const download = document.querySelector(".download");
+    const donation = document.getElementById("donation");
     /*  */
     download.addEventListener("click", config.download.svg, false);
     fileio.addEventListener("change", config.handle.input.files, false);
     reload.addEventListener("click", function () {document.location.reload()}, false);
     /*  */
     support.addEventListener("click", function () {
-      var url = config.addon.homepage();
+      const url = config.addon.homepage();
       chrome.tabs.create({"url": url, "active": true});
     }, false);
     /*  */
     donation.addEventListener("click", function () {
-      var url = config.addon.homepage() + "?reason=support";
+      const url = config.addon.homepage() + "?reason=support";
       chrome.tabs.create({"url": url, "active": true});
     }, false);
     /*  */
     run.addEventListener("click", function () {
-      var result = document.querySelector(".result div");
-      var video = config.GIF.options.video && config.GIF.options.video.length;
-      var images = config.GIF.options.images && config.GIF.options.images.length;
+      const result = document.querySelector(".result div");
+      const video = config.GIF.options.video && config.GIF.options.video.length;
+      const images = config.GIF.options.images && config.GIF.options.images.length;
       /*  */
       result.textContent = "Loading, please wait...";
       window.setTimeout(function () {
         if (video || images) {
           if (navigator.userAgent.indexOf("Firefox") !== -1) {
             gifshot.utils.default.Blob = function (a, b) {
-              var flag = b.type === "text/javascript";
+              const flag = b.type === "text/javascript";
               return flag ? "data:" + b.type + ";charset=utf-8;base64," + base64Encode(a) : new Blob(a, b);
             };
           }
           /*  */
-          gifshot.createGIF(config.GIF.options, function (e) {
-            if (e.error) result.textContent = e.error + '!';
-            else {
-              var img = document.createElement("img");
-              img.src = e.image;
-              result.textContent = '';
-              result.appendChild(img);
-            }
-          });
+          const cond_1 = config.GIF.options.GIFSource === "video";
+          const cond_2 = config.GIF.options.GIFSource === "images" && config.GIF.options.images.length > 1;
+          /*  */
+          if (cond_1 || cond_2) {
+            gifshot.createGIF(config.GIF.options, function (e) {
+              if (e.error) result.textContent = e.error + '!';
+              else {
+                const img = document.createElement("img");
+                img.src = e.image;
+                result.textContent = '';
+                result.appendChild(img);
+              }
+            });
+          } else {
+            result.textContent = "Error! Please select at least two image files and try again!";
+          }
         } else {
           result.textContent = "An unexpected error occurred! No image or video file is selected!";
         }
@@ -294,14 +332,9 @@ var config = {
   }
 };
 
-window.addEventListener("drop", function (e) {
-  if (!e.target.id || e.target.id.indexOf("fileio") === -1) {
-    e.preventDefault();
-  }
-});
-
 config.port.connect();
 
 window.addEventListener("load", config.load, false);
+window.addEventListener("drop", config.drop, false);
+window.addEventListener("dragover", config.dragover, false);
 window.addEventListener("resize", config.resize.method, false);
-window.addEventListener("dragover", function (e) {e.preventDefault()});
