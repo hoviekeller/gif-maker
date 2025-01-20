@@ -72,7 +72,7 @@ a {
 
 .title .name svg {
   margin: 0;
-  fill: #777;
+  fill: #555;
   pointer-events: none;
   vertical-align: middle;
 }
@@ -97,13 +97,17 @@ a {
 }
 
 .title .toolbar table tr td svg {
-  fill: #777;
+  fill: #555;
   pointer-events: none;
   vertical-align: middle;
 }
 
 .inactive {
   display: none;
+}
+
+.content table tr td:has(.actions) {
+  height: 42px;
 }
 
 .actions {
@@ -168,7 +172,7 @@ a {
   color: #fff;
   height: 52px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 52px;
   user-select: none;

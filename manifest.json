@@ -1,9 +1,8 @@
 {
-  "version": "0.1.3",
+  "version": "0.1.4",
   "name": "GIF Maker",
   "manifest_version": 3,
   "offline_enabled": true,
-  "permissions": ["storage", "contextMenus"],
   "homepage_url": "https://mybrowseraddon.com/gif-maker.html",
   "description": "Create animated GIFs from existing video file(s) or images!",
   "commands": {
@@ -12,6 +11,10 @@
   "background": {
     "service_worker": "background.js"
   },
+  "permissions": [
+    "storage", 
+    "contextMenus"
+  ],
   "action": {
     "default_title": "GIF Maker",
     "default_icon": {
