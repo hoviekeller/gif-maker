@@ -74,24 +74,6 @@ var config = {
       }
     }
   },
-  "app": {
-    "start": function () {
-      const sidebar = document.querySelector(".sidebar");
-      const items = [...sidebar.querySelectorAll("[id]")];
-      config.GIF.options = config.storage.read("options") !== undefined ? config.storage.read("options") : {};
-      /*  */
-      if (Object.keys(config.GIF.options).length === 0) config.handle.linsteners();
-      for (let i = 0; i < items.length; i++) {
-        items[i].addEventListener("change", config.handle.linsteners, false);
-        /*  */
-        const key = items[i].id;
-        if (key in config.GIF.options) {
-          items[i].value = config.GIF.options[key];
-          config.update.svg(items[i].id, items[i].value);
-        }
-      }
-    }
-  },
   "download": {
     "svg": function () {
       const result = document.querySelector(".result div");
@@ -107,6 +89,28 @@ var config = {
           window.setTimeout(function () {a.remove()}, 300);
         } else {
           result.textContent = "An unexpected error occurred! No GIF file to download!";
+        }
+      }
+    }
+  },
+  "app": {
+    "start": function () {
+      const theme = config.storage.read("theme");
+      const options = config.storage.read("options");
+      const sidebar = document.querySelector(".sidebar");
+      const items = [...sidebar.querySelectorAll("[id]")];
+      /*  */
+      config.GIF.options = options !== undefined ? options : {};
+      document.documentElement.setAttribute("theme", theme !== undefined ? theme : "light");
+      /*  */
+      if (Object.keys(config.GIF.options).length === 0) config.handle.linsteners();
+      for (let i = 0; i < items.length; i++) {
+        items[i].addEventListener("change", config.handle.linsteners, false);
+        /*  */
+        const key = items[i].id;
+        if (key in config.GIF.options) {
+          items[i].value = config.GIF.options[key];
+          config.update.svg(items[i].id, items[i].value);
         }
       }
     }
@@ -270,6 +274,7 @@ var config = {
   },
   "load": function () {
     const run = document.querySelector(".run");
+    const theme = document.getElementById("theme");
     const reload = document.getElementById("reload");
     const fileio = document.getElementById("fileio");
     const support = document.getElementById("support");
@@ -288,6 +293,14 @@ var config = {
     donation.addEventListener("click", function () {
       const url = config.addon.homepage() + "?reason=support";
       chrome.tabs.create({"url": url, "active": true});
+    }, false);
+    /*  */
+    theme.addEventListener("click", function () {
+      let attribute = document.documentElement.getAttribute("theme");
+      attribute = attribute === "dark" ? "light" : "dark";
+      /*  */
+      document.documentElement.setAttribute("theme", attribute);
+      config.storage.write("theme", attribute);
     }, false);
     /*  */
     run.addEventListener("click", function () {
